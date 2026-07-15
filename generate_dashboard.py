@@ -231,7 +231,12 @@ def detect_hist_months(hist_df):
 def load_data():
     # ── DEMAND ──────────────────────────────────────────────────────
     dem = pd.read_excel(DEMAND_FILE, sheet_name="demand")
-    dem.columns = ["model", "Google", "Facebook", "Total"]
+    if dem.shape[1] == 2:
+        dem.columns = ["model", "Total"]
+        dem["Google"] = 0
+        dem["Facebook"] = 0
+    else:
+        dem.columns = ["model", "Google", "Facebook", "Total"]
     for c in ["Google", "Facebook", "Total"]:
         dem[c] = pd.to_numeric(dem[c], errors="coerce").fillna(0)
     dem_nz = dem[dem["Total"] > 0].copy()
@@ -239,7 +244,11 @@ def load_data():
 
     # ── SUPPLY ──────────────────────────────────────────────────────
     sup = pd.read_excel(DEMAND_FILE, sheet_name="Supply")
-    sup.columns = ["Date", "Medium", "Total_Leads", "Process", "Actual_Model"]
+    if sup.shape[1] == 5 and sup.iloc[0, 1] != "Medium":
+        # New format: Date, model, Medium, Total_Leads, Process
+        sup.columns = ["Date", "Actual_Model", "Medium", "Total_Leads", "Process"]
+    else:
+        sup.columns = ["Date", "Medium", "Total_Leads", "Process", "Actual_Model"]
     sup["Total_Leads"] = pd.to_numeric(sup["Total_Leads"], errors="coerce").fillna(0)
 
     # Auto-detect: current month name + how many days of supply data exist
@@ -427,6 +436,6 @@ if __name__ == "__main__":
     html = build_html(rows, brand_rows, meta)
     Path(OUTPUT_FILE).write_text(html, encoding="utf-8")
 
-    print(f"  ✓  Written to: {OUTPUT_FILE}")
-    print(f"  ✓  Title: CPS Demand & Supply Dashboard — {meta['current_month']}")
+    print(f"  OK  Written to: {OUTPUT_FILE}")
+    print(f"  OK  Title: CPS Demand & Supply Dashboard - {meta['current_month']}")
     print("Done! Push to GitHub to update the live site.")
