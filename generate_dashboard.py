@@ -28,7 +28,7 @@ from datetime import datetime
 DEMAND_FILE   = "CPS_Demand_supply.xlsx"
 HIST_FILE     = "CPS_Apr_may_data.xlsx"
 OUTPUT_FILE   = "index.html"
-WORKING_DAYS  = 26   # working days assumed per month (for both demand and historical avg)
+WORKING_DAYS  = 25   # working days assumed per month (for both demand and historical avg)
 
 # Chetak variant names in the historical file — all get summed for combined Bajaj Chetak demand row
 CHETAK_HIST_KEYS = [
