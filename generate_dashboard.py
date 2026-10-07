@@ -230,7 +230,10 @@ def detect_hist_months(hist_df):
 
 def load_data():
     # ── DEMAND ──────────────────────────────────────────────────────
-    dem = pd.read_excel(DEMAND_FILE, sheet_name="demand")
+    # Support both "demand" (old) and "Demand" (new capitalized sheet name)
+    sheet_names = pd.ExcelFile(DEMAND_FILE).sheet_names
+    dem_sheet = "Demand" if "Demand" in sheet_names else "demand"
+    dem = pd.read_excel(DEMAND_FILE, sheet_name=dem_sheet)
     if dem.shape[1] == 2:
         dem.columns = ["model", "Total"]
         dem["Google"] = 0
@@ -243,12 +246,23 @@ def load_data():
     dem_nz["daily_demand"] = (dem_nz["Total"] / WORKING_DAYS).round(1)
 
     # ── SUPPLY ──────────────────────────────────────────────────────
-    sup = pd.read_excel(DEMAND_FILE, sheet_name="Supply")
-    if sup.shape[1] == 5 and sup.iloc[0, 1] != "Medium":
-        # New format: Date, model, Medium, Total_Leads, Process
-        sup.columns = ["Date", "Actual_Model", "Medium", "Total_Leads", "Process"]
+    # Support both old "Supply" sheet and new "Raw" sheet format
+    if "Supply" in sheet_names:
+        sup = pd.read_excel(DEMAND_FILE, sheet_name="Supply")
+        if sup.shape[1] == 5 and sup.iloc[0, 1] != "Medium":
+            sup.columns = ["Date", "Actual_Model", "Medium", "Total_Leads", "Process"]
+        else:
+            sup.columns = ["Date", "Medium", "Total_Leads", "Process", "Actual_Model"]
     else:
-        sup.columns = ["Date", "Medium", "Total_Leads", "Process", "Actual_Model"]
+        # New format: Raw sheet with named columns
+        sup_raw = pd.read_excel(DEMAND_FILE, sheet_name="Raw")
+        sup = pd.DataFrame({
+            "Date":         sup_raw["Date"],
+            "Actual_Model": sup_raw["Model_Map"],
+            "Medium":       sup_raw["Medium"],
+            "Total_Leads":  sup_raw["Total"],
+            "Process":      sup_raw["Process"],
+        })
     sup["Total_Leads"] = pd.to_numeric(sup["Total_Leads"], errors="coerce").fillna(0)
 
     # Auto-detect: current month name + how many days of supply data exist
