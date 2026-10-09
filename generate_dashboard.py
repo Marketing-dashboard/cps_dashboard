@@ -276,6 +276,29 @@ def load_data():
     sup_fb  = sup[sup["Medium"] == "Facebook"].groupby("Actual_Model")["Total_Leads"].sum()
     sup_g   = sup[sup["Medium"] == "Google"].groupby("Actual_Model")["Total_Leads"].sum()
 
+    # ── Distribute Jawa/generic triggers proportionally to named Jawa models ──
+    JAWA_MODELS = ["Jawa 42 FJ", "Jawa 42", "Jawa 42 Bobber", "Yezdi Adventure", "Yezdi Roadster"]
+    if "Jawa/generic" in sup_tot.index:
+        sup_tot = sup_tot.astype(float)
+        sup_g   = sup_g.astype(float)
+        sup_fb  = sup_fb.astype(float)
+        gen_tot = float(sup_tot.get("Jawa/generic", 0))
+        gen_g   = float(sup_g.get("Jawa/generic", 0))
+        gen_fb  = float(sup_fb.get("Jawa/generic", 0))
+        # Weight by each named model's own total leads
+        jawa_totals = {m: sup_tot.get(m, 0) for m in JAWA_MODELS}
+        total_weight = sum(jawa_totals.values())
+        if total_weight > 0:
+            for m in JAWA_MODELS:
+                w = jawa_totals[m] / total_weight
+                sup_tot[m] = sup_tot.get(m, 0) + round(gen_tot * w, 1)
+                sup_g[m]   = sup_g.get(m, 0)   + round(gen_g   * w, 1)
+                sup_fb[m]  = sup_fb.get(m, 0)  + round(gen_fb  * w, 1)
+        # Remove the generic bucket so it doesn't appear as its own row
+        sup_tot = sup_tot.drop("Jawa/generic", errors="ignore")
+        sup_g   = sup_g.drop("Jawa/generic", errors="ignore")
+        sup_fb  = sup_fb.drop("Jawa/generic", errors="ignore")
+
     def gsup(key, series):
         if not key or key not in series.index:
             return 0
